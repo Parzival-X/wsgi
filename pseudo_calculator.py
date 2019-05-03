@@ -20,6 +20,10 @@ Consider the following URL/Response body pairs as tests:
 ```
 
 """
+import cgitb
+
+cgitb.enable()
+
 
 def resolve_path(path):
     """
@@ -27,22 +31,50 @@ def resolve_path(path):
     arguments, based on the path.
     """
 
-    # TODO: Provide correct values for func and args. The
-    # examples provide the correct *syntax*, but you should
-    # determine the actual values of func and args using the
-    # path.
-    func = some_func
-    args = ['25', '32']
+    funcs = {
+        '': pseudo,
+        'positive': positive,
+        'negative': negative,
+    }
+
+    path = path.strip('/').split('/')
+
+    func_name = path[0]
+    args = path[1:]
+
+    try:
+        func = funcs[func_name]
+    except KeyError:
+        raise NameError
+
+    print("Func:" + str(func))
+    print("Args:" + str(args))
 
     return func, args
+
+
+def pseudo(val=None):
+    return "<h2>Pseudo Calc</h2>"
+
+
+def positive(val):
+    return str(int(val) > 0)
+
+
+def negative(val):
+    return str(int(val) < 0)
+
 
 def application(environ, start_response):
     headers = [('Content-type', 'text/html')]
     try:
         path = environ.get('PATH_INFO', None)
+
         if path is None:
             raise NameError
+
         func, args = resolve_path(path)
+
         body = func(*args)
         status = "200 OK"
     except NameError:
@@ -50,11 +82,12 @@ def application(environ, start_response):
         body = "<h1>Not Found</h1>"
     except Exception:
         status = "500 Internal Server Error"
-        body = "<h1> Internal Server Error</h1>"
+        body = "<h2>Internal Server Error</h2>"
     finally:
         headers.append(('Content-length', str(len(body))))
         start_response(status, headers)
         return [body.encode('utf8')]
+
 
 if __name__ == '__main__':
     from wsgiref.simple_server import make_server
